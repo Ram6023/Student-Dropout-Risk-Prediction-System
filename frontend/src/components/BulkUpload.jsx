@@ -62,8 +62,8 @@ const BulkUpload = ({ onResult }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="glass rounded-[2rem] p-10 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-accent-500/5 blur-[100px] rounded-full" />
+      <div className="panel-glass rounded-[2rem] p-10 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/5 blur-[100px] rounded-full" />
         
         <div className="max-w-xl mx-auto text-center space-y-6">
           <header className="space-y-2">
@@ -78,7 +78,7 @@ const BulkUpload = ({ onResult }) => {
             onDrop={handleDrop}
             className={`relative group cursor-pointer transition-all duration-500 rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center p-12 ${
               dragActive 
-              ? 'border-accent-400 bg-accent-400/5 scale-[0.98]' 
+              ? 'border-brand-400 bg-brand-400/5 scale-[0.98]' 
               : 'border-slate-800 bg-slate-900/40 hover:border-slate-700'
             }`}
           >
@@ -90,7 +90,7 @@ const BulkUpload = ({ onResult }) => {
             />
             
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-all duration-500 ${
-              file ? 'bg-success/20 text-success' : 'bg-slate-800 text-slate-500 group-hover:text-accent-400'
+              file ? 'bg-success/20 text-success' : 'bg-slate-800 text-slate-500 group-hover:text-brand-400'
             }`}>
               {file ? (
                 <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
@@ -127,7 +127,7 @@ const BulkUpload = ({ onResult }) => {
           <button 
             disabled={!file || loading}
             onClick={handleUpload}
-            className="btn-premium w-full py-5 text-sm uppercase tracking-[0.2em] font-black shimmer-active"
+            className="btn-premium w-full py-5 text-sm uppercase tracking-[0.2em] font-black shimmer-indigo"
           >
             {loading ? "Processing Stream..." : "Initiate Batch Classification"}
           </button>
