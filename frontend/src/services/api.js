@@ -1,20 +1,13 @@
 import axios from 'axios';
 
-// Detect environment automatically
-const getBaseURL = () => {
-  // If we are on Vercel (or any production domain), use the relative /api path
-  if (typeof window !== 'undefined') {
-    const { hostname } = window.location;
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return '/api';
-    }
-  }
-  
-  // Local development defaults to the uvicorn port
-  return 'http://localhost:8000';
-};
-
-const API_BASE_URL = getBaseURL();
+/**
+ * Unified API Client
+ * ------------------
+ * Using a relative path '/api' for both development and production.
+ * - In Development: Vite proxies '/api' to 'http://localhost:8000' (see vite.config.js)
+ * - In Production: Vercel routes '/api' to the serverless functions (see vercel.json)
+ */
+const API_BASE_URL = '/api';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -24,9 +17,6 @@ const apiClient = axios.create({
   timeout: 30000,
 });
 
-/**
- * Single prediction
- */
 export const predictDropoutRisk = async (studentData) => {
   try {
     const response = await apiClient.post('/predict', studentData);
@@ -36,15 +26,11 @@ export const predictDropoutRisk = async (studentData) => {
   }
 };
 
-/**
- * Bulk prediction via CSV
- */
 export const predictDropoutCSV = async (file) => {
   const formData = new FormData();
   formData.append('file', file);
-  
   try {
-    const response = await axios.post(`${API_BASE_URL}/predict-csv`, formData, {
+    const response = await apiClient.post('/predict-csv', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     return response.data;
@@ -54,8 +40,8 @@ export const predictDropoutCSV = async (file) => {
 };
 
 const handleError = (error) => {
+  console.error('API Error:', error);
   if (error.response) {
-    // Attempt to extract detail from FastAPI error response
     const detail = error.response.data?.detail;
     const msg = Array.isArray(detail) ? detail[0]?.msg : detail;
     throw new Error(msg || `Server error: ${error.response.status}`);
