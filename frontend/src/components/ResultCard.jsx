@@ -1,156 +1,115 @@
-import { useState, useEffect, useRef } from 'react';
+import React from 'react';
 
-/* ───────────────────────────────────────────
-   Animated Speedometer Gauge
-   ─────────────────────────────────────────── */
-function Gauge({ percent = 0, size = 240 }) {
-  const [val, setVal] = useState(0);
-  const raf = useRef();
-  const t0 = useRef();
+const ResultCard = ({ result, onReset }) => {
+  const { risk_level, probability, factors, prediction } = result;
+  const probPercent = Math.round(probability * 100);
 
-  useEffect(() => {
-    const dur = 2000;
-    const ease = (t) => 1 - Math.pow(1 - t, 4);
-    const tick = (ts) => {
-      if (!t0.current) t0.current = ts;
-      const p = Math.min((ts - t0.current) / dur, 1);
-      setVal(Math.round(ease(p) * percent));
-      if (p < 1) raf.current = requestAnimationFrame(tick);
-    };
-    t0.current = null;
-    raf.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf.current);
-  }, [percent]);
-
-  const cx = size / 2;
-  const cy = size / 2 + 8;
-  const r = size / 2 - 30;
-  const sw = 10;
-
-  const toRad = (deg) => ((deg - 90) * Math.PI) / 180;
-  const pt = (angle) => ({
-    x: cx + r * Math.cos(toRad(angle)),
-    y: cy + r * Math.sin(toRad(angle)),
-  });
-
-  const arcStart = pt(180);
-  const arcEnd = pt(360);
-  const arcPath = `M ${arcStart.x} ${arcStart.y} A ${r} ${r} 0 1 1 ${arcEnd.x} ${arcEnd.y}`;
-  const arcLen = Math.PI * r;
-  const offset = arcLen - (val / 100) * arcLen;
-
-  const needleAngle = 180 + (val / 100) * 180;
-  const needleLen = r - 30;
-  const nx = cx + needleLen * Math.cos(toRad(needleAngle));
-  const ny = cy + needleLen * Math.sin(toRad(needleAngle));
-
-  const color = val <= 30 ? '#10b981' : val <= 55 ? '#f59e0b' : val <= 75 ? '#f97316' : '#f43f5e';
-  const glow = val <= 30 ? 'rgba(16,185,129,0.35)' : val <= 55 ? 'rgba(245,158,11,0.35)' : val <= 75 ? 'rgba(249,115,22,0.35)' : 'rgba(244,63,94,0.35)';
-  const label = val <= 30 ? 'Low Risk' : val <= 55 ? 'Moderate' : val <= 75 ? 'High Risk' : 'Critical';
-
-  return (
-    <div className="relative" style={{ width: size, height: size / 2 + 65 }}>
-      <svg width={size} height={size / 2 + 70} viewBox={`0 0 ${size} ${size / 2 + 70}`} className="overflow-visible">
-        <path d={arcPath} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={sw} strokeLinecap="round" />
-        <path d={arcPath} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeDasharray={arcLen} strokeDashoffset={offset} className="gauge-track" style={{ filter: `drop-shadow(0 0 10px ${glow})` }} />
-        
-        {Array.from({ length: 21 }, (_, i) => {
-          const a = 180 + (i / 20) * 180;
-          const isMajor = i % 5 === 0;
-          const p1 = { x: cx + (r - (isMajor ? 6 : 3)) * Math.cos(toRad(a)), y: cy + (r - (isMajor ? 6 : 3)) * Math.sin(toRad(a)) };
-          const p2 = { x: cx + r * Math.cos(toRad(a)), y: cy + r * Math.sin(toRad(a)) };
-          return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={isMajor ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)'} strokeWidth={isMajor ? 1.5 : 0.8} />;
-        })}
-
-        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={color} strokeWidth="2" strokeLinecap="round" style={{ filter: `drop-shadow(0 0 4px ${glow})`, transition: 'all 2000ms cubic-bezier(0.22,1,0.36,1)' }} />
-        <circle cx={cx} cy={cy} r="4" fill={color} opacity="0.8" style={{ transition: 'fill 0.5s' }} />
-        <circle cx={cx} cy={cy} r="1.5" fill="#0a0a0f" />
-
-        <text x={cx} y={cy - 22} textAnchor="middle" fill="#e4e4e7" fontSize="34" fontWeight="800" fontFamily="Inter" className="anim-count d5">
-          {val}<tspan fontSize="16" fill="#71717a">%</tspan>
-        </text>
-
-        <text x={cx} y={cy + 50} textAnchor="middle" fill={color} fontSize="10" fontWeight="700" fontFamily="Inter" letterSpacing="0.12em" style={{ transition: 'fill 0.5s' }}>
-          {label.toUpperCase()}
-        </text>
-      </svg>
-    </div>
-  );
-}
-
-/* ─── Result Card ─── */
-export default function ResultCard({ result, onReset }) {
-  const prob = result?.probability ?? 0;
-  const pct = Math.round(prob * 100);
-  const factorData = result?.factors || { attendance: 0, academic: 0, financial: 0 };
-
-  const getAdvice = () => {
-    if (pct < 30) return "Student appears stable. Maintain standard monitoring and encourage continued participation.";
-    if (factorData.financial > 0.7) return "Financial issues appear to be the primary risk. Recommend exploring scholarship opportunities or payment plans.";
-    if (factorData.attendance > 0.7) return "Attendance is critically low. Early intervention and parent communication are strongly recommended.";
-    if (factorData.academic > 0.6) return "Academic performance is declining. Peer mentoring and additional tutoring sessions may help.";
-    return "Multiple risk factors detected. Comprehensive academic and welfare support is advised.";
+  const riskConfigs = {
+    Critical: { color: '#ef4444', secondary: 'rgba(239, 68, 68, 0.1)', glow: '0 0 30px rgba(239, 68, 68, 0.4)', text: 'Critical Risk Detected' },
+    High: { color: '#f59e0b', secondary: 'rgba(245, 158, 11, 0.1)', glow: '0 0 25px rgba(245, 158, 11, 0.3)', text: 'Significant Warning' },
+    Moderate: { color: '#3b82f6', secondary: 'rgba(59, 130, 246, 0.1)', glow: '0 0 20px rgba(59, 130, 246, 0.2)', text: 'Stable Condition' },
+    Low: { color: '#10b981', secondary: 'rgba(16, 185, 129, 0.1)', glow: '0 0 25px rgba(16, 185, 129, 0.4)', text: 'Optimal Profile' }
   };
 
+  const config = riskConfigs[risk_level] || riskConfigs.Low;
+
   return (
-    <div className="anim-scale space-y-6">
-      {/* Gauge Card */}
-      <div className={`card p-6 flex flex-col items-center bg-gradient-to-b from-surface-card to-surface`}>
-        <p className="text-[10px] text-zinc-600 uppercase tracking-[0.15em] font-bold mb-4">Dropout Probability</p>
-        <Gauge percent={pct} size={220} />
-      </div>
+    <div className="glass rounded-[2rem] p-8 space-y-8 relative overflow-hidden anim-float border-2" style={{ borderColor: `${config.color}20` }}>
+      {/* ── Background Glow ── */}
+      <div className="absolute -top-20 -right-20 w-64 h-64 blur-[100px] opacity-20 rounded-full" style={{ background: config.color }} />
 
-      {/* Breakdown Card */}
-      <div className="card p-5 space-y-5">
-        <div className="flex items-center justify-between">
-          <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Risk Factors</h4>
-          <span className="text-[10px] text-zinc-600">Influence Analysis</span>
+      <div className="text-center space-y-4">
+        <h4 className="section-title">Analytical Output</h4>
+        
+        {/* ── High-End Gauge ── */}
+        <div className="relative w-48 h-48 mx-auto">
+          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+            {/* Base Track */}
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#0f172a" strokeWidth="8" />
+            {/* Glow Path */}
+            <circle 
+              cx="50" cy="50" r="42" 
+              fill="none" 
+              stroke={config.color} 
+              strokeWidth="10" 
+              strokeDasharray="264" 
+              strokeDashoffset={264 - (264 * probability)} 
+              strokeLinecap="round" 
+              style={{ filter: `drop-shadow(0 0 8px ${config.color})`, transition: 'stroke-dashoffset 1.5s ease-out' }}
+              opacity="0.3"
+            />
+            {/* Main Path */}
+            <circle 
+              cx="50" cy="50" r="42" 
+              fill="none" 
+              stroke={config.color} 
+              strokeWidth="8" 
+              strokeDasharray="264" 
+              strokeDashoffset={264 - (264 * probability)} 
+              strokeLinecap="round" 
+              style={{ transition: 'stroke-dashoffset 1.5s ease-out' }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-5xl font-black text-white tracking-tighter" style={{ textShadow: `0 0 20px ${config.color}40` }}>
+              {probPercent}<span className="text-xl opacity-50">%</span>
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Risk Index</span>
+          </div>
         </div>
 
+        <div className="space-y-1">
+          <h2 className="text-2xl font-black uppercase tracking-widest" style={{ color: config.color }}>
+            {risk_level}
+          </h2>
+          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{config.text}</p>
+        </div>
+      </div>
+
+      {/* ── Weighted Factors ── */}
+      <div className="space-y-4 pt-6 border-t border-slate-800/50">
+        <div className="flex justify-between items-center px-1">
+            <span className="section-title m-0">Inference Factors</span>
+            <span className="text-[10px] text-slate-500 font-bold">INFLUENCE %</span>
+        </div>
         <div className="space-y-4">
-          <FactorBar label="Attendance" val={factorData.attendance} />
-          <FactorBar label="Academics" val={factorData.academic} />
-          <FactorBar label="Financials" val={factorData.financial} />
-        </div>
-
-        <div className="pt-2 border-t border-border/50">
-          <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-            <span className="text-accent-400 mr-1.5">●</span>
-            {getAdvice()}
-          </p>
+            <FactorBar label="Academic Continuity" value={factors.academic} color="#38bdf8" />
+            <FactorBar label="Engagement Level" value={factors.attendance} color="#818cf8" />
+            <FactorBar label="Economic Stability" value={factors.financial} color="#10b981" />
         </div>
       </div>
 
-      {/* Reset */}
-      <button onClick={onReset} className="w-full h-10 rounded-xl border border-zinc-800 text-[11px] font-bold text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 transition-all duration-200 cursor-pointer active:scale-95 anim-up d6 uppercase letter tracking-widest">
-        Create New Assessment
+      <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/40 relative group">
+          <div className="section-title mb-2">Recommendation</div>
+          <p className="text-sm text-white font-medium leading-relaxed italic pr-4">
+            "{prediction}"
+          </p>
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 group-hover:translate-x-1 transition-transform opacity-30">
+            <svg className="w-5 h-5 text-accent-400" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21L14.017 18C14.017 16.8954 13.1216 16 12.017 16H9.01705V14H12.017C14.2262 14 16.017 15.7909 16.017 18V21H14.017Z" /></svg>
+          </div>
+      </div>
+
+      <button onClick={onReset} className="w-full py-4 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+        New Assessment
       </button>
     </div>
   );
-}
+};
 
-function FactorBar({ label, val }) {
-  // val is 0 to 1
-  const width = `${Math.max(val * 100, 5)}%`;
-  const isHigh = val > 0.7;
-  const isMid = val > 0.4;
-  
-  const color = isHigh ? 'bg-rose-500' : isMid ? 'bg-amber-500' : 'bg-accent-500';
-
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center text-[10px] font-medium tracking-tight">
-        <span className="text-zinc-500 uppercase">{label}</span>
-        <span className={isHigh ? 'text-rose-400' : isMid ? 'text-amber-400' : 'text-accent-400'}>
-          {isHigh ? 'High Risk' : isMid ? 'Warning' : 'Stable'}
-        </span>
-      </div>
-      <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/50">
-        <div 
-          className={`h-full ${color} transition-all duration-1000 cubic-bezier(0.22,1,0.36,1)`} 
-          style={{ width }}
-        />
-      </div>
+const FactorBar = ({ label, value, color }) => (
+  <div className="space-y-1">
+    <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+      <span>{label}</span>
+      <span className="text-white">{Math.round(value * 100)}%</span>
     </div>
-  );
-}
+    <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
+      <div 
+        className="h-full transition-all duration-1000" 
+        style={{ width: `${value * 100}%`, background: color, boxShadow: `0 0 10px ${color}40` }}
+      />
+    </div>
+  </div>
+);
+
+export default ResultCard;

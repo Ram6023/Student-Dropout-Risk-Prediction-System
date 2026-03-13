@@ -1,218 +1,230 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Navbar from '../components/Navbar';
 import PredictionForm from '../components/PredictionForm';
 import ResultCard from '../components/ResultCard';
 import BulkUpload from '../components/BulkUpload';
+import AnalyticsSection from '../components/AnalyticsSection';
 import { predictDropoutRisk } from '../services/api';
 
-export default function Home() {
-  const [activeTab, setActiveTab] = useState('individual'); // 'individual' or 'bulk'
-  const [result, setResult] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+const Home = () => {
+    const [activeTab, setActiveTab] = useState('single');
+    const [history, setHistory] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [currentResult, setCurrentResult] = useState(null);
 
-  const handlePredict = async (data) => {
-    setIsLoading(true);
-    setError(null);
-    setResult(null);
-    try {
-      const res = await predictDropoutRisk(data);
-      const newResult = { ...res, studentName: data.name, date: new Date().toLocaleTimeString() };
-      setResult(newResult);
-      setHistory(prev => [newResult, ...prev].slice(0, 5));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Load history from session storage to keep it during page reloads in the same session
+    useEffect(() => {
+        const saved = sessionStorage.getItem('risk_history');
+        if (saved) setHistory(JSON.parse(saved));
+    }, []);
 
-  const handleReset = () => { setResult(null); setError(null); };
+    const updateHistory = (newResult) => {
+        const updated = [newResult, ...history].slice(0, 50); // Keep last 50
+        setHistory(updated);
+        sessionStorage.setItem('risk_history', JSON.stringify(updated));
+    };
 
-  return (
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-8 sm:space-y-10">
-      {/* Responsive Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 anim-up">
-        <div className="space-y-1">
-          <h2 className="text-2xl sm:text-3xl font-bold text-zinc-100 tracking-tight">
-            Risk Analysis Dashboard
-          </h2>
-          <p className="text-sm text-zinc-600 max-w-md leading-relaxed">
-            ML-powered dropout forecasting. Analyzed student data is evaluated against historical patterns to generate risk scores.
-          </p>
-        </div>
-        
-        {/* Tab Switcher - Mobile friendly */}
-        <div className="flex p-1 bg-zinc-900/50 backdrop-blur rounded-xl border border-zinc-800/80 w-fit shrink-0">
-          <TabButton 
-            active={activeTab === 'individual'} 
-            onClick={() => setActiveTab('individual')} 
-            label="Single" 
-            icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>}
-          />
-          <TabButton 
-            active={activeTab === 'bulk'} 
-            onClick={() => setActiveTab('bulk')} 
-            label="Bulk" 
-            icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>}
-          />
-        </div>
-      </div>
+    const handlePredict = async (data) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const result = await predictDropoutRisk(data);
+            setCurrentResult(result);
+            updateHistory({
+                ...result,
+                name: data.name || 'Anonymous Student',
+                timestamp: new Date().toLocaleTimeString(),
+                date: new Date().toLocaleDateString()
+            });
+            // Auto scroll to result on mobile
+            if (window.innerWidth < 1024) {
+               setTimeout(() => {
+                  document.getElementById('result-area')?.scrollIntoView({ behavior: 'smooth' });
+               }, 100);
+            }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-      {/* Main Grid: Responsive 12-col */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
-        
-        {/* Left Section: 8 cols (Input Areas + History) */}
-        <div className="lg:col-span-8 space-y-6 sm:space-y-8">
-          
-          {/* Main Card: Transitions from flex-col to grid-md */}
-          <div className="card p-5 sm:p-8 anim-up d2 overflow-hidden">
-            {activeTab === 'individual' ? (
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-                <div className="md:col-span-3 md:border-r md:border-border/50 md:pr-8">
-                  <PredictionForm onSubmit={handlePredict} isLoading={isLoading} />
+    return (
+        <div className="relative min-h-screen">
+            <div className="bg-mesh" />
+            <Navbar />
+
+            <main className="max-w-7xl mx-auto px-4 pt-28 pb-12">
+                {/* ── Dashboard Header ── */}
+                <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="space-y-2">
+                        <div className="glass-pill w-fit animate-pulse border-accent-500/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-accent-400" />
+                            Analytical Suite v2.0
+                        </div>
+                        <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
+                            Risk Analysis <span className="text-accent-400">Dashboard</span>
+                        </h1>
+                        <p className="text-slate-400 text-lg max-w-2xl font-medium">
+                            Advanced dropout forecasting utilizing weighted academic and economic indicators.
+                        </p>
+                    </div>
+
+                    {/* ── Tab Navigator ── */}
+                    <div className="glass p-1 rounded-2xl flex gap-1 w-full md:w-auto">
+                        <TabButton 
+                            active={activeTab === 'single'} 
+                            onClick={() => setActiveTab('single')}
+                            label="Single"
+                            icon="profile"
+                        />
+                        <TabButton 
+                            active={activeTab === 'bulk'} 
+                            onClick={() => setActiveTab('bulk')}
+                            label="Bulk"
+                            icon="cloud"
+                        />
+                        <TabButton 
+                            active={activeTab === 'analytics'} 
+                            onClick={() => setActiveTab('analytics')}
+                            label="Insights"
+                            icon="chart"
+                        />
+                    </div>
+                </header>
+
+                <div className="grid grid-cols-12 gap-8">
+                    {/* ── Primary Workflow Area ── */}
+                    <div className={`${activeTab === 'analytics' ? 'col-span-12' : 'col-span-12 lg:col-span-8'}`}>
+                        {activeTab === 'single' && (
+                            <div className="space-y-8">
+                                <div className="glass rounded-[2rem] p-1 shadow-2xl overflow-hidden border-border-glow">
+                                    <div className="p-8">
+                                       <PredictionForm onSubmit={handlePredict} loading={loading} />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'bulk' && (
+                            <BulkUpload onResult={(results) => {
+                                // For bulk, we don't pollute the visual history card with dozens of entries
+                                // but we could add them to analytics. For now, let's just update history one by one
+                                results.forEach(r => updateHistory({
+                                    ...r,
+                                    name: 'Bulk Imported',
+                                    timestamp: new Date().toLocaleTimeString(),
+                                    date: new Date().toLocaleDateString()
+                                }));
+                                setActiveTab('analytics');
+                            }} />
+                        )}
+
+                        {activeTab === 'analytics' && (
+                            <AnalyticsSection history={history} />
+                        )}
+                    </div>
+
+                    {/* ── Contextual Sidebar (Only for Single/Bulk) ── */}
+                    {activeTab !== 'analytics' && (
+                        <div className="col-span-12 lg:col-span-4 space-y-6">
+                            <div id="result-area">
+                                {loading ? (
+                                    <StateCard icon="loading" title="Analyzing..." />
+                                ) : currentResult ? (
+                                    <ResultCard result={currentResult} onReset={() => setCurrentResult(null)} />
+                                ) : (
+                                    <StateCard icon="empty" title="Awaiting Input" description="Define student parameters to initiate predictive modeling." />
+                                )}
+                            </div>
+
+                            {/* ── Recent Mini History ── */}
+                            <div className="glass rounded-3xl p-6">
+                                <h4 className="section-title">Session Feed</h4>
+                                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {history.length > 0 ? (
+                                        history.map((item, i) => (
+                                            <div key={i} className="p-4 rounded-2xl bg-slate-900/50 border border-slate-800/30 flex justify-between items-center group hover:border-accent-500/30 transition-all">
+                                                <div>
+                                                    <div className="text-xs font-bold text-white mb-0.5">{item.name}</div>
+                                                    <div className="text-[10px] text-slate-500">{item.timestamp}</div>
+                                                </div>
+                                                <div className={`text-[10px] font-black uppercase px-2 py-1 rounded-md ${
+                                                    item.risk_level === 'Critical' ? 'bg-danger/10 text-danger' :
+                                                    item.risk_level === 'High' ? 'bg-warning/10 text-warning' :
+                                                    'bg-success/10 text-success'
+                                                }`}>
+                                                    {item.risk_level}
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-[11px] text-slate-600 text-center py-8">No session data available.</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
-                <div className="md:col-span-2 min-h-[300px] flex flex-col">
-                  {error && <StateCard type="error" message={error} onRetry={() => setError(null)} />}
-                  {isLoading && <StateCard type="loading" />}
-                  {result && !isLoading && <ResultCard result={result} onReset={handleReset} />}
-                  {!result && !isLoading && !error && <StateCard type="empty" />}
+            </main>
+
+            {/* ── Footer ── */}
+            <footer className="max-w-7xl mx-auto px-4 py-12 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center gap-4 text-[11px] font-bold text-slate-600">
+                <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-slate-900 text-accent-400">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    </span>
+                    Student Intelligent Predictor
                 </div>
-              </div>
+                <div className="uppercase tracking-[0.2em]">Developed for COE Project • 2026</div>
+                <div className="flex gap-6">
+                    <a href="#" className="hover:text-accent-400 transition-colors">Documentation</a>
+                    <a href="#" className="hover:text-accent-400 transition-colors">System Health</a>
+                </div>
+            </footer>
+        </div>
+    );
+};
+
+const TabButton = ({ active, onClick, label, icon }) => {
+    const icons = {
+        profile: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />,
+        cloud: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />,
+        chart: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 022 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    };
+
+    return (
+        <button 
+            onClick={onClick}
+            className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-500 flex items-center gap-2 ${
+                active 
+                ? 'bg-accent-500 text-white shadow-lg shadow-accent-500/20' 
+                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+            }`}
+        >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                {icons[icon]}
+            </svg>
+            {label}
+        </button>
+    );
+};
+
+const StateCard = ({ icon, title, description }) => (
+    <div className="glass rounded-3xl p-10 flex flex-col items-center justify-center text-center space-y-4 border-dashed border-2 border-slate-800">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${icon === 'loading' ? 'bg-accent-500/20 animate-spin' : 'bg-slate-900 text-slate-600'}`}>
+            {icon === 'loading' ? (
+                <svg className="w-6 h-6 text-accent-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
             ) : (
-              <div className="max-w-xl mx-auto py-4">
-                <BulkUpload />
-              </div>
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
             )}
-          </div>
-
-          {/* History Panel: Horizontal scroll on mobile */}
-          {history.length > 0 && activeTab === 'individual' && (
-            <div className="anim-up d4">
-              <h3 className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.25em] mb-4 ml-1">Recent Evaluations</h3>
-              <div className="flex sm:grid sm:grid-cols-2 md:grid-cols-3 gap-4 overflow-x-auto pb-4 sm:pb-0 scrollbar-none">
-                {history.map((item, i) => (
-                  <HistoryCard key={i} item={item} />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
-
-        {/* Right Section: 4 cols (Info/Sidebar) - Hidden on smallest, visible on larger */}
-        <aside className="lg:col-span-4 space-y-4 sm:space-y-6 anim-right d3">
-          <div className="card p-5 bg-gradient-to-br from-surface-card to-accent-900/5">
-            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Model Information</h4>
-            <div className="space-y-4">
-              <InfoItem label="Architecture" value="Weighted Sigmoid Regressor" />
-              <InfoItem label="Accuracy" value="~94% Conf." />
-              <InfoItem label="Features" value="4 Metrics" />
-              <InfoItem label="Last Update" value="Mar 2026" />
-            </div>
-          </div>
-
-          {/* Mobile Info Tip */}
-          <div className="card p-5 border-amber-500/10 bg-amber-500/5 block lg:hidden">
-            <p className="text-[11px] text-amber-300/60 leading-relaxed font-medium">
-              <span className="text-amber-400 mr-1 font-black">TIP:</span> Use the <span className="text-amber-200">Bulk Upload</span> tab for processing large student lists via CSV.
-            </p>
-          </div>
-
-          <div className="card p-5 border-blue-500/10 bg-blue-500/5 hidden md:block">
-            <h4 className="border-b border-blue-500/10 pb-3 text-[10px] font-black text-blue-400/80 uppercase tracking-widest mb-3 flex items-center gap-2">
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              Privacy Note
-            </h4>
-            <p className="text-[11px] text-blue-300/40 leading-relaxed">
-              All processing is done via secure serverless functions. Data is not stored after session close, ensuring FERPA-aligned privacy.
-            </p>
-          </div>
-        </aside>
-
-      </div>
-    </main>
-  );
-}
-
-/* ── Support Components ── */
-
-function TabButton({ active, onClick, label, icon }) {
-  return (
-    <button 
-      onClick={onClick}
-      className={`flex items-center gap-2.5 px-6 py-2 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${
-        active 
-          ? 'bg-accent-500 text-surface shadow-lg shadow-accent-500/20' 
-          : 'text-zinc-500 hover:text-zinc-300'
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
-
-function StateCard({ type, message, onRetry }) {
-  if (type === 'loading') return (
-    <div className="flex flex-col items-center justify-center flex-1 py-12 gap-4">
-      <div className="spinner-sm" />
-      <div className="text-center">
-        <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-[0.2em] animate-pulse">Computing Risk</p>
-      </div>
+        <div className="space-y-1">
+            <h3 className="text-white font-bold">{title}</h3>
+            {description && <p className="text-slate-500 text-[11px] leading-relaxed max-w-[180px]">{description}</p>}
+        </div>
     </div>
-  );
+);
 
-  if (type === 'error') return (
-    <div className="card-raised border-rose-500/20 p-5 anim-scale flex-1 flex flex-col justify-center items-center text-center">
-      <div className="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center mb-3">
-        <svg className="w-5 h-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      </div>
-      <p className="text-xs font-bold text-rose-400 uppercase tracking-wider">Analysis Failed</p>
-      <p className="text-[10px] text-rose-500/60 leading-relaxed mt-1 mb-4">{message}</p>
-      <button onClick={onRetry} className="text-[10px] font-bold text-zinc-500 hover:text-rose-400 transition-colors uppercase tracking-widest">Retry</button>
-    </div>
-  );
-
-  return (
-    <div className="flex flex-col items-center justify-center flex-1 py-12 anim-fade text-center">
-      <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-border/40 flex items-center justify-center mb-5 opacity-40">
-        <svg className="w-6 h-6 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-        </svg>
-      </div>
-      <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.3em]">Ready for Prediction</p>
-    </div>
-  );
-}
-
-function InfoItem({ label, value }) {
-  return (
-    <div className="flex justify-between items-center text-[10px] sm:text-[11px]">
-      <span className="text-zinc-600 uppercase font-bold tracking-tight">{label}</span>
-      <span className="text-zinc-400 font-semibold">{value}</span>
-    </div>
-  );
-}
-
-function HistoryCard({ item }) {
-  const pct = Math.round(item.probability * 100);
-  const colorClass = pct < 30 ? 'text-accent-400' : pct < 60 ? 'text-amber-400' : 'text-rose-400';
-  const bgClass = pct < 30 ? 'bg-accent-400/5 border-accent-400/10' : pct < 60 ? 'bg-amber-400/5 border-amber-400/10' : 'bg-rose-400/5 border-rose-400/10';
-
-  return (
-    <div className={`card-raised p-4 min-w-[180px] sm:min-w-0 ${bgClass} anim-scale shrink-0`}>
-      <div className="flex justify-between items-start mb-2">
-        <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">{item.date}</span>
-        <span className={`text-[10px] font-black ${colorClass}`}>{pct}%</span>
-      </div>
-      <h5 className="text-[13px] font-bold text-zinc-200 truncate">{item.studentName}</h5>
-      <p className={`text-[9px] font-black uppercase tracking-widest mt-1 ${colorClass}`}>
-        {item.risk_level}
-      </p>
-    </div>
-  );
-}
+export default Home;

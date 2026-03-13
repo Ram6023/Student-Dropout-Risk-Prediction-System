@@ -1,123 +1,146 @@
-import { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { predictDropoutCSV } from '../services/api';
 
-export default function BulkUpload() {
+const BulkUpload = ({ onResult }) => {
   const [file, setFile] = useState(null);
-  const [results, setResults] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const fileInputRef = useRef();
+  const [dragActive, setDragActive] = useState(false);
 
-  const handleFileChange = (e) => {
-    const selected = e.target.files[0];
-    if (selected && selected.type === "text/csv") {
-      setFile(selected);
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    else if (e.type === "dragleave") setDragActive(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      validateAndSetFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const validateAndSetFile = (selectedFile) => {
+    if (selectedFile.type === "text/csv" || selectedFile.name.endsWith('.csv')) {
+      setFile(selectedFile);
       setError(null);
     } else {
-      setError("Please select a valid CSV file.");
+      setError("Architectural incompatibility. Please provide a standard .csv file.");
       setFile(null);
     }
   };
 
   const handleUpload = async () => {
     if (!file) return;
-    setIsLoading(true);
+    setLoading(true);
     setError(null);
     try {
-      const data = await predictDropoutCSV(file);
-      setResults(data);
+      const results = await predictDropoutCSV(file);
+      
+      // Generate result CSV
+      const headers = Object.keys(results[0]).join(',');
+      const rows = results.map(row => Object.values(row).join(','));
+      const csvContent = [headers, ...rows].join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Batch_Analysis_${new Date().getTime()}.csv`;
+      a.click();
+      
+      onResult(results);
     } catch (err) {
       setError(err.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const downloadResults = () => {
-    if (!results) return;
-    const headers = Object.keys(results[0]).join(",");
-    const rows = results.map(row => Object.values(row).join(",")).join("\n");
-    const blob = new Blob([`${headers}\n${rows}`], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dropout_predictions_${new Date().getTime()}.csv`;
-    a.click();
-  };
-
   return (
-    <div className="space-y-6 anim-up">
-      <div className="card p-6 border-dashed border-2 border-zinc-800 bg-zinc-900/30 flex flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-full bg-accent-500/10 flex items-center justify-center mb-4">
-          <svg className="w-6 h-6 text-accent-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-        </div>
-        <h4 className="text-sm font-bold text-zinc-200">Upload Student Data</h4>
-        <p className="text-[11px] text-zinc-500 mt-1 max-w-[240px]">
-          CSV must include columns: <code className="text-accent-400">attendance</code>, <code className="text-accent-400">sem1_cgpa</code>, <code className="text-accent-400">sem2_cgpa</code>, <code className="text-accent-400">fee_paid</code>
-        </p>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="glass rounded-[2rem] p-10 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-accent-500/5 blur-[100px] rounded-full" />
         
-        <input 
-          type="file" 
-          accept=".csv" 
-          className="hidden" 
-          ref={fileInputRef}
-          onChange={handleFileChange}
-        />
-        
-        <button 
-          onClick={() => fileInputRef.current.click()}
-          className="mt-6 px-4 py-2 rounded-xl bg-zinc-800 text-[11px] font-bold text-zinc-300 hover:bg-zinc-700 transition-all active:scale-95"
-        >
-          {file ? file.name : "Select CSV File"}
-        </button>
-      </div>
+        <div className="max-w-xl mx-auto text-center space-y-6">
+          <header className="space-y-2">
+            <h2 className="text-3xl font-black text-white tracking-tight">Mass Data Processing</h2>
+            <p className="text-slate-500 text-sm">Upload large student datasets for parallel risk classification.</p>
+          </header>
 
-      {error && (
-        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-[10px] text-rose-400 text-center">
-          {error}
-        </div>
-      )}
-
-      {file && !results && (
-        <button 
-          onClick={handleUpload}
-          disabled={isLoading}
-          className="btn-primary w-full h-11 flex items-center justify-center gap-3"
-        >
-          {isLoading ? <div className="spinner-sm" /> : "Start Bulk Prediction"}
-        </button>
-      )}
-
-      {results && (
-        <div className="card-raised p-5 border-accent-500/20 bg-accent-500/5 anim-scale">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-[10px] font-black text-accent-400 uppercase tracking-widest">Success</p>
-              <h5 className="text-sm font-bold text-zinc-200">{results.length} Students Processed</h5>
-            </div>
-            <button 
-              onClick={downloadResults}
-              className="px-3 py-1.5 rounded-lg bg-accent-500 text-[10px] font-bold text-surface hover:bg-accent-400 transition-all flex items-center gap-2"
-            >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-              </svg>
-              Download CSV
-            </button>
-          </div>
-          <p className="text-[11px] text-zinc-500 leading-relaxed">
-            All predictions have been generated. Click the button above to download the annotated CSV with risk scores and recommendations.
-          </p>
-          <button 
-            onClick={() => {setResults(null); setFile(null);}}
-            className="mt-4 text-[10px] text-zinc-600 hover:text-zinc-400 font-bold uppercase tracking-widest"
+          <div 
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            className={`relative group cursor-pointer transition-all duration-500 rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center p-12 ${
+              dragActive 
+              ? 'border-accent-400 bg-accent-400/5 scale-[0.98]' 
+              : 'border-slate-800 bg-slate-900/40 hover:border-slate-700'
+            }`}
           >
-            Clear and reset
+            <input 
+              type="file" 
+              accept=".csv"
+              onChange={(e) => validateAndSetFile(e.target.files[0])}
+              className="absolute inset-0 opacity-0 cursor-pointer z-10"
+            />
+            
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-all duration-500 ${
+              file ? 'bg-success/20 text-success' : 'bg-slate-800 text-slate-500 group-hover:text-accent-400'
+            }`}>
+              {file ? (
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              ) : (
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <span className={`text-lg font-bold block ${file ? 'text-white' : 'text-slate-400'}`}>
+                {file ? file.name : "Select Target CSV"}
+              </span>
+              <span className="text-xs text-slate-600 font-medium uppercase tracking-widest">
+                {file ? `${(file.size / 1024).toFixed(2)} KB` : "Drag and drop source file here"}
+              </span>
+            </div>
+
+            {!file && (
+               <div className="mt-8 pt-8 border-t border-slate-800/50 w-full flex flex-wrap justify-center gap-3">
+                  <Badge label="attendance" />
+                  <Badge label="sem1_cgpa" />
+                  <Badge label="sem2_cgpa" />
+                  <Badge label="fee_paid" />
+               </div>
+            )}
+          </div>
+
+          {error && (
+            <div className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-[11px] font-bold">
+              {error}
+            </div>
+          )}
+
+          <button 
+            disabled={!file || loading}
+            onClick={handleUpload}
+            className="btn-premium w-full py-5 text-sm uppercase tracking-[0.2em] font-black shimmer-active"
+          >
+            {loading ? "Processing Stream..." : "Initiate Batch Classification"}
           </button>
         </div>
-      )}
+      </div>
     </div>
   );
-}
+};
+
+const Badge = ({ label }) => (
+  <span className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+    {label}
+  </span>
+);
+
+export default BulkUpload;
