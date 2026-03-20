@@ -69,16 +69,6 @@ COE PROJECT/
 
 ---
 
-The system calculates a `Dropout Risk Index` (DRI) based on the following weighted vectors:
-
-| Factor | Weight | Critical Threshold | Description |
-| :--- | :--- | :--- | :--- |
-| **Attendance** | 40% | < 60% | Primary indicator of student disengagement. |
-| **Academic Stability** | 40% | < 4.0 CGPA | Joint analysis of Sem 1 & Sem 2 performance and trends. |
-| **Financial Health** | 20% | Unpaid Status | Evaluation of fee compliance impact on retention. |
-
-Each profile is classified into institutional risk tiers: **Low**, **Moderate**, **High**, or **Critical**, triggering respective administrative action.
-
 ---
 
 ## 🚀 Deployment & Local Setup
@@ -112,16 +102,6 @@ This system was conceptualized and engineered for the COE program by:
 *   **🎓 SRIRAM**
 *   **🎓 PRAVALIKA REDDY**
 *   **🎓 SRINIVAS**
-
----
-
-## ☁️ Cloud Infrastructure
-The project is architected for **Vercel's Global Edge Network**, utilizing serverless Python functions for high-concurrency API demands and globally distributed static assets for the application layer.
-
----
-
-## 📄 Licensing & Governance
-Distributed under the **MIT License**. For official institutional collaboration or academic inquiries, please contact the development team.
 
 ---
 
