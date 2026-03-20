@@ -2,81 +2,56 @@ import React from 'react';
 import { Users, UserX, Activity, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import TiltCard from '@/components/ui/TiltCard';
 
 interface StatGridProps {
-  stats?: {
-    total?: number;
-    critical?: number;
-    avgAttendance?: string;
-  };
+  stats?: { total?: number; critical?: number; avgAttendance?: string; };
 }
 
 const AnimatedNumber: React.FC<{ value: number }> = ({ value }) => {
   const [current, setCurrent] = React.useState(0);
   React.useEffect(() => {
-    const duration = 1500;
-    const steps = 60;
-    const increment = value / steps;
-    let step = 0;
-    const timer = setInterval(() => {
-      step++;
-      setCurrent(Math.min(Math.round(increment * step), value));
-      if (step >= steps) clearInterval(timer);
-    }, duration / steps);
-    return () => clearInterval(timer);
+    const steps = 50, inc = value / steps;
+    let s = 0;
+    const t = setInterval(() => { s++; setCurrent(Math.min(Math.round(inc * s), value)); if (s >= steps) clearInterval(t); }, 25);
+    return () => clearInterval(t);
   }, [value]);
   return <>{current}</>;
 };
 
 const StatGrid: React.FC<StatGridProps> = ({ stats }) => {
   const cards = [
-    { label: 'Total Analyzed', value: stats?.total || 0, icon: Users, accent: 'cyan', gradient: 'from-cyan-500/20 to-cyan-600/5', iconColor: 'text-cyan-400', trend: 'Live', isNumber: true },
-    { label: 'Critical Risk', value: stats?.critical || 0, icon: UserX, accent: 'rose', gradient: 'from-rose-500/20 to-rose-600/5', iconColor: 'text-rose-400', trend: 'Priority', isNumber: true },
-    { label: 'Avg Attendance', value: stats?.avgAttendance || '0%', icon: Activity, accent: 'amber', gradient: 'from-amber-500/20 to-amber-600/5', iconColor: 'text-amber-400', trend: 'Average', isNumber: false },
-    { label: 'Model Accuracy', value: '98.2%', icon: Brain, accent: 'emerald', gradient: 'from-emerald-500/20 to-emerald-600/5', iconColor: 'text-emerald-400', trend: 'Stable', isNumber: false }
+    { label: 'Total Analyzed', value: stats?.total || 0, icon: Users, glow: '6, 182, 212', iconBg: 'bg-cyan-500/10 ring-1 ring-cyan-500/20', iconColor: 'text-cyan-400', tag: 'Live', tagBg: 'text-cyan-400/70 bg-cyan-500/5', isNumber: true },
+    { label: 'Critical Risk', value: stats?.critical || 0, icon: UserX, glow: '244, 63, 94', iconBg: 'bg-rose-500/10 ring-1 ring-rose-500/20', iconColor: 'text-rose-400', tag: 'Alert', tagBg: 'text-rose-400/70 bg-rose-500/5', isNumber: true },
+    { label: 'Avg Attendance', value: stats?.avgAttendance || '0%', icon: Activity, glow: '251, 191, 36', iconBg: 'bg-amber-500/10 ring-1 ring-amber-500/20', iconColor: 'text-amber-400', tag: 'Avg', tagBg: 'text-amber-400/70 bg-amber-500/5', isNumber: false },
+    { label: 'Model Accuracy', value: '98.2%', icon: Brain, glow: '16, 185, 129', iconBg: 'bg-emerald-500/10 ring-1 ring-emerald-500/20', iconColor: 'text-emerald-400', tag: 'Stable', tagBg: 'text-emerald-400/70 bg-emerald-500/5', isNumber: false }
   ];
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
       {cards.map((card, idx) => (
         <motion.div
-           key={idx}
-           initial={{ opacity: 0, y: 40 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: idx * 0.12, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-           whileHover={{ y: -4, transition: { duration: 0.3 } }}
-           className="panel-glass p-6 rounded-2xl glow-card group relative overflow-hidden cursor-pointer"
+          key={idx}
+          initial={{ opacity: 0, y: 50, filter: 'blur(10px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ delay: idx * 0.1, duration: 0.8, ease: "easeOut" }}
         >
-          {/* Accent gradient bg */}
-          <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-gradient-to-br", card.gradient)} />
-          
-          <div className="flex items-center justify-between mb-5 relative z-10">
-            <motion.div
-              whileHover={{ rotate: 8, scale: 1.1 }}
-              transition={{ type: "spring", stiffness: 300 }}
-              className={cn("p-2.5 rounded-xl", 
-                card.accent === 'cyan' ? 'bg-cyan-500/10 ring-1 ring-cyan-500/20' :
-                card.accent === 'rose' ? 'bg-rose-500/10 ring-1 ring-rose-500/20' :
-                card.accent === 'amber' ? 'bg-amber-500/10 ring-1 ring-amber-500/20' :
-                'bg-emerald-500/10 ring-1 ring-emerald-500/20'
-              )}
-            >
-              <card.icon className={cn("w-4.5 h-4.5", card.iconColor)} />
-            </motion.div>
-            <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md",
-              card.accent === 'cyan' ? 'text-cyan-400/70 bg-cyan-500/5' :
-              card.accent === 'rose' ? 'text-rose-400/70 bg-rose-500/5' :
-              card.accent === 'amber' ? 'text-amber-400/70 bg-amber-500/5' :
-              'text-emerald-400/70 bg-emerald-500/5'
-            )}>{card.trend}</span>
-          </div>
-
-          <div className="space-y-1.5 relative z-10">
-            <div className="text-3xl font-black text-white tracking-tight">
-              {card.isNumber ? <AnimatedNumber value={card.value as number} /> : card.value}
+          <TiltCard glowColor={card.glow} className="cursor-pointer">
+            <div className="panel-glass p-6 rounded-2xl relative overflow-hidden h-full" style={{ transformStyle: 'preserve-3d' }}>
+              <div className="flex items-center justify-between mb-5" style={{ transform: 'translateZ(20px)' }}>
+                <motion.div whileHover={{ rotate: 8, scale: 1.1 }} transition={{ type: "spring", stiffness: 300 }} className={cn("p-2.5 rounded-xl", card.iconBg)}>
+                  <card.icon className={cn("w-4.5 h-4.5", card.iconColor)} />
+                </motion.div>
+                <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md", card.tagBg)}>{card.tag}</span>
+              </div>
+              <div className="space-y-1.5" style={{ transform: 'translateZ(30px)' }}>
+                <div className="text-3xl font-black text-white tracking-tight">
+                  {card.isNumber ? <AnimatedNumber value={card.value as number} /> : card.value}
+                </div>
+                <div className="text-[11px] font-semibold text-slate-500 tracking-wide">{card.label}</div>
+              </div>
             </div>
-            <div className="text-[11px] font-semibold text-slate-500 tracking-wide">{card.label}</div>
-          </div>
+          </TiltCard>
         </motion.div>
       ))}
     </div>

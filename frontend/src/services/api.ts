@@ -17,7 +17,7 @@ const apiClient = axios.create({
   timeout: 30000,
 });
 
-export const predictDropoutRisk = async (studentData) => {
+export const predictDropoutRisk = async (studentData: Record<string, any>) => {
   try {
     const response = await apiClient.post('/predict', studentData);
     return response.data;
@@ -26,7 +26,7 @@ export const predictDropoutRisk = async (studentData) => {
   }
 };
 
-export const predictDropoutCSV = async (file) => {
+export const predictDropoutCSV = async (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
   try {
@@ -39,7 +39,7 @@ export const predictDropoutCSV = async (file) => {
   }
 };
 
-const handleError = (error) => {
+const handleError = (error: any) => {
   console.error('API Error:', error);
   if (error.response) {
     const detail = error.response.data?.detail;

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CloudUpload, CheckCircle, FileText, AlertCircle, Download, Database } from 'lucide-react';
+import { CloudUpload, CheckCircle, FileText, AlertCircle, Download, Database, FileSpreadsheet } from 'lucide-react';
 import { predictDropoutCSV } from '../services/api';
 import { cn } from '@/lib/utils';
+import TiltCard from '@/components/ui/TiltCard';
 
 interface BulkUploadProps {
   onResult: (results: any[]) => void;
@@ -71,98 +72,106 @@ const BulkUpload: React.FC<BulkUploadProps> = ({ onResult }) => {
 
   return (
     <div className="w-full max-w-2xl mx-auto py-8">
-      <div className="panel-glass rounded-3xl p-10 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.04) 0%, transparent 70%)' }} />
-        
-        <div className="space-y-8">
-          <header className="text-center space-y-2">
-            <h2 className="text-2xl font-bold text-white">Bulk Analysis</h2>
-            <p className="text-slate-500 text-sm">Upload a CSV file with student data for batch risk prediction.</p>
-          </header>
+      <TiltCard glowColor="6, 182, 212" className="w-full">
+        <div className="panel-glass rounded-[2rem] p-10 sm:p-14 relative overflow-hidden h-full" style={{ transformStyle: 'preserve-3d' }}>
+          <div className="absolute top-0 right-0 w-80 h-80 bg-accent-400/5 blur-[100px] rounded-full pointer-events-none" />
+          
+          <div className="space-y-10" style={{ transform: 'translateZ(20px)' }}>
+            <header className="text-center space-y-3">
+              <div className="flex justify-center mb-2" style={{ transform: 'translateZ(10px)' }}>
+                <div className="p-3 rounded-2xl bg-accent-400/10 text-accent-400 ring-1 ring-accent-400/20">
+                  <FileSpreadsheet className="w-6 h-6" />
+                </div>
+              </div>
+              <h2 className="text-3xl font-black text-white tracking-tight">Mass Data Processing</h2>
+              <p className="text-slate-500 text-sm font-medium">Ingest large-scale student datasets for parallel AI risk detection.</p>
+            </header>
 
-          <div 
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            className={cn(
-                "relative group cursor-pointer transition-all duration-500 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-14",
-                dragActive 
-                    ? 'border-accent-400 scale-[0.98]' 
-                    : 'border-white/[0.06] hover:border-white/[0.1]'
-            )}
-            style={dragActive ? { background: 'rgba(6,182,212,0.03)' } : { background: 'rgba(0,0,0,0.2)' }}
-          >
-            <input type="file" accept=".csv" onChange={(e) => e.target.files && validateAndSetFile(e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-            
-            <AnimatePresence mode="wait">
-              <motion.div 
-                key={file ? 'selected' : 'empty'}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className={cn(
-                    "w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-all duration-500",
-                    file ? 'text-emerald-400' : 'text-slate-600 group-hover:text-accent-400'
-                )}
-                style={file 
-                    ? { background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.15)' }
-                    : { background: 'rgba(12,18,30,0.8)', border: '1px solid rgba(255,255,255,0.06)' }
-                }
-              >
-                {file ? <CheckCircle className="w-8 h-8" /> : <CloudUpload className="w-8 h-8" />}
-              </motion.div>
-            </AnimatePresence>
+            <div 
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              className={cn(
+                  "relative group cursor-pointer transition-all duration-700 rounded-3xl border-2 border-dashed flex flex-col items-center justify-center p-16",
+                  dragActive 
+                      ? 'border-accent-400 scale-[0.98]' 
+                      : 'border-white/[0.04] bg-black/20 hover:border-white/10'
+              )}
+              style={dragActive ? { background: 'rgba(6,182,212,0.04)' } : { transform: 'translateZ(10px)' }}
+            >
+              <input type="file" accept=".csv" onChange={(e) => e.target.files && validateAndSetFile(e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+              
+              <AnimatePresence mode="wait">
+                <motion.div 
+                  key={file ? 'selected' : 'empty'}
+                  initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
+                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, rotate: 10 }}
+                  className={cn(
+                      "w-20 h-20 rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl transition-all duration-700",
+                      file ? 'text-emerald-400' : 'text-slate-600 group-hover:text-accent-400'
+                  )}
+                  style={file 
+                      ? { background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.15)', transform: 'translateZ(20px)' }
+                      : { background: 'rgba(5,8,16,0.8)', border: '1px solid rgba(255,255,255,0.06)', transform: 'translateZ(20px)' }
+                  }
+                >
+                  {file ? <CheckCircle className="w-10 h-10" /> : <CloudUpload className="w-10 h-10" />}
+                </motion.div>
+              </AnimatePresence>
 
-            <div className="text-center space-y-1.5">
-              <span className={cn("text-lg font-bold block", file ? 'text-white' : 'text-slate-500')}>
-                {file ? file.name : "Drop CSV file here"}
-              </span>
-              <span className="text-[10px] text-slate-600 font-medium tracking-wider">
-                {file ? `${(file.size / 1024).toFixed(2)} KB — Ready` : "or click to browse"}
-              </span>
+              <div className="text-center space-y-2" style={{ transform: 'translateZ(15px)' }}>
+                <span className={cn("text-xl font-black block transition-colors", file ? 'text-white' : 'text-slate-500')}>
+                  {file ? file.name : "Inject Source Dataset"}
+                </span>
+                <span className="text-[10px] text-slate-700 font-black uppercase tracking-[0.3em]">
+                  {file ? `${(file.size / 1024).toFixed(2)} KB • System Ready` : "Drag and drop source CSV"}
+                </span>
+              </div>
+
+              {!file && (
+                 <div className="mt-12 flex flex-wrap justify-center gap-3 opacity-30 group-hover:opacity-80 transition-all duration-700" style={{ transform: 'translateZ(5px)' }}>
+                    {['attendance', 'cgpa', 'fees'].map(t => (
+                        <span key={t} className="px-4 py-2 rounded-xl text-[9px] font-black text-slate-500 uppercase tracking-widest"
+                              style={{ background: 'rgba(5,8,16,0.8)', border: '1px solid rgba(255,255,255,0.04)' }}>{t}</span>
+                    ))}
+                 </div>
+              )}
             </div>
 
-            {!file && (
-               <div className="mt-8 flex flex-wrap justify-center gap-2 opacity-40 group-hover:opacity-80 transition-all duration-500">
-                  {['attendance', 'sem1_cgpa', 'sem2_cgpa', 'fee_paid'].map(t => (
-                      <span key={t} className="px-3 py-1.5 rounded-lg text-[9px] font-medium text-slate-500 tracking-wider"
-                            style={{ background: 'rgba(12,18,30,0.8)', border: '1px solid rgba(255,255,255,0.04)' }}>{t}</span>
-                  ))}
-               </div>
-            )}
+            <AnimatePresence>
+              {error && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                      className="p-5 rounded-2xl bg-rose-500/5 border border-rose-500/10 text-rose-400 text-xs font-bold flex items-center gap-4">
+                      <AlertCircle className="w-5 h-5 flex-shrink-0" /> {error}
+                  </motion.div>
+              )}
+              {success && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                      className="p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-emerald-400 text-xs font-bold flex items-center gap-4">
+                      <Download className="w-5 h-5 flex-shrink-0" /> Analysis complete. Results exported.
+                  </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.button 
+              disabled={!file || loading}
+              onClick={handleUpload}
+              whileHover={file && !loading ? { scale: 1.05, y: -2 } : {}}
+              whileTap={file && !loading ? { scale: 0.95 } : {}}
+              className="btn-premium w-full py-5 text-sm font-black uppercase tracking-[0.3em] shimmer-accent flex items-center justify-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed shadow-2xl"
+              style={{ transform: 'translateZ(30px)' }}
+            >
+              {loading ? (
+                  <><Database className="w-5 h-5 animate-spin" /> Neutralizing Data...</>
+              ) : (
+                  <><FileText className="w-5 h-5" /> Execute Batch Prediction</>
+              )}
+            </motion.button>
           </div>
-
-          <AnimatePresence>
-            {error && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-xl bg-rose-500/5 border border-rose-500/10 text-rose-400 text-xs font-medium flex items-center gap-3">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
-                </motion.div>
-            )}
-            {success && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-emerald-400 text-xs font-medium flex items-center gap-3">
-                    <Download className="w-4 h-4 flex-shrink-0" /> Analysis complete. Results downloaded.
-                </motion.div>
-            )}
-          </AnimatePresence>
-
-          <motion.button 
-            disabled={!file || loading}
-            onClick={handleUpload}
-            whileHover={file && !loading ? { scale: 1.02 } : {}}
-            whileTap={file && !loading ? { scale: 0.98 } : {}}
-            className="btn-premium w-full py-4 text-sm font-semibold shimmer-accent flex items-center justify-center gap-2.5 disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-                <><Database className="w-4 h-4 animate-spin" /> Processing...</>
-            ) : (
-                <><FileText className="w-4 h-4" /> Run Batch Analysis</>
-            )}
-          </motion.button>
         </div>
-      </div>
+      </TiltCard>
     </div>
   );
 };
