@@ -10,23 +10,29 @@ interface MainDashboardProps {
 }
 
 const MainDashboard: React.FC<MainDashboardProps> = ({ history }) => {
-  // Enhanced mock data for trends
-  const lineData = [
-    { name: 'W1', value: 40 }, { name: 'W2', value: 30 }, { name: 'W3', value: 45 },
-    { name: 'W4', value: 35 }, { name: 'W5', value: 55 }, { name: 'W6', value: 40 },
-  ];
+  const hasData = history && history.length > 0;
 
-  const pieData = [
-    { name: 'Dropout', value: 32 },
-    { name: 'Graduate', value: 48 },
-    { name: 'Enrolled', value: 20 },
-  ];
+  // Real data derived from history or empty defaults
+  const lineData = hasData 
+    ? history.map((h, i) => ({ name: `S${i+1}`, value: h.probability * 100 }))
+    : [{ name: 'N/A', value: 0 }];
+
+  const riskLevels = hasData ? history.reduce((acc: any, curr) => {
+    acc[curr.risk_level] = (acc[curr.risk_level] || 0) + 1;
+    return acc;
+  }, {}) : {};
+
+  const pieData = hasData 
+    ? Object.keys(riskLevels).map(level => ({ name: level, value: riskLevels[level] }))
+    : [{ name: 'No Data', value: 1 }];
+
+  const avgAttendance = hasData ? (history.reduce((a, b) => a + b.attendance, 0) / history.length) : 0;
+  const avgRisk = hasData ? (history.reduce((a, b) => a + b.probability, 0) / history.length) * 100 : 0;
 
   const barData = [
-    { label: 'Att.', value: 85 },
-    { label: 'Sem1', value: 72 },
-    { label: 'Sem2', value: 68 },
-    { label: 'Fin.', value: 90 },
+    { label: 'Avg Att.', value: Math.round(avgAttendance) },
+    { label: 'Risk Index', value: Math.round(avgRisk) },
+    { label: 'Coverage', value: hasData ? 100 : 0 },
   ];
 
   const COLORS = ['#8b5cf6', '#10b981', '#f59e0b'];
@@ -83,8 +89,8 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ history }) => {
                 </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
-                <span className="text-2xl font-black text-white">32%</span>
-                <span className="text-[9px] font-bold text-slate-500 uppercase">Avg Risk</span>
+                <span className="text-2xl font-black text-white">{Math.round(avgRisk)}%</span>
+                <span className="text-[9px] font-bold text-slate-500 uppercase">Baseline</span>
             </div>
         </div>
       </ChartCard>

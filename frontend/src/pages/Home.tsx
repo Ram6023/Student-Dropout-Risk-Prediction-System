@@ -167,7 +167,13 @@ const Home = () => {
                     >
                         {activeTab === 'dashboard' && (
                             <div className="space-y-16">
-                                <StatGrid stats={{ total: history.length + 1240, critical: 42, avgAttendance: '78%' }} />
+                                <StatGrid stats={{ 
+                                    total: history.length, 
+                                    critical: history.filter(h => h.risk_level === 'Critical').length, 
+                                    avgAttendance: history.length > 0 
+                                        ? `${Math.round(history.reduce((a, b) => a + b.attendance, 0) / history.length)}%` 
+                                        : '0%' 
+                                }} />
                                 <div className="panel-glass rounded-[3.5rem] p-2 shadow-2xl relative">
                                     <div className="absolute inset-0 bg-brand-500/5 blur-[120px] rounded-full -z-10" />
                                     <MainDashboard history={history} />
